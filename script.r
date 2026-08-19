@@ -1,5 +1,5 @@
 # =====================================================================
-# Projeto: Monitoramento Semanal de Atividade e Sono
+# Projeto Avançado: Análise de Tendência de Estilo de Vida e Sono
 # Autor: Rafael Silveira Assunção
 # =====================================================================
 
@@ -7,40 +7,54 @@
 webr::install("ggplot2")
 library(ggplot2)
 
-# --- 1. Dados Brutos da Semana ---
-dias <- c("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
-meus_passos <- c(5210, 5457, 7035, 6667, 5269, 6031, 4884)
-meu_sono_decimal <- c(6.07, 5.82, 6.40, 6.55, 5.67, 11.40, 7.22)
+# --- 1. Modelagem Baseada em Tendência Comportamental ---
+set.seed(42) 
+total_amostra <- 400
 
-# Parâmetro de negócio do projeto
-meta_passos <- 6000
+# Fator latente de estilo de vida para guiar a tendência de comportamento
+estilo_vida <- rnorm(total_amostra, mean = 0, sd = 1)
 
-dados_reais <- data.frame(
-  Dia = factor(dias, levels = dias),
-  Passos = meus_passos,
-  Sono = meu_sono_decimal
+# Passos Diários: Variação orgânica baseada na tendência individual
+passos <- round(7000 + (estilo_vida * 1800) + rnorm(total_amostra, mean = 0, sd = 400), 0)
+
+# Duração do Sono: Alinhada à mesma tendência, sem travas artificiais
+sono <- round(7.0 + (estilo_vida * 0.8) + rnorm(total_amostra, mean = 0, sd = 0.3), 1)
+
+# Nível de Estresse: Inversamente proporcional à saúde do estilo de vida
+estresse_score <- 5.5 - (estilo_vida * 2) + rnorm(total_amostra, mean = 0, sd = 0.8)
+estresse_num <- pmax(pmin(round(estresse_score), 10), 1)
+
+# Consolidação do Data Frame
+dados_analise <- data.frame(
+  Daily.Steps = passos,
+  Sleep.Duration = sono,
+  Stress.Level = estresse_num
 )
 
-# --- 2. Métricas de Resumo ---
-cat("Média de passos diários:", round(mean(dados_reais$Passos), 0), "\n")
-cat("Recorde de passos na semana:", max(dados_reais$Passos), "\n")
+# Segmentação do nível de estresse para categorias de negócio
+dados_analise$Categoria_Estresse <- ifelse(dados_analise$Stress.Level <= 4, "Baixo",
+                                    ifelse(dados_analise$Stress.Level <= 7, "Moderado", "Alto"))
 
-# --- 3. Construção do Gráfico ---
-ggplot(data = dados_reais, aes(x = Dia, y = Passos, fill = Sono)) +
-  geom_bar(stat = "identity", width = 0.7, color = "white") +
-  
-  # Adiciona a linha de meta horizontal (vermelha e tracejada)
-  geom_hline(yintercept = meta_passos, color = "#e74c3c", linetype = "dashed", size = 1) +
-  
-  # Cria uma etiqueta de texto logo acima da linha de meta
-  annotate("text", x = 1.2, y = meta_passos + 250, label = "Meta: 6k passos", color = "#e74c3c", fontface = "bold") +
-  
-  scale_fill_gradient(low = "#74b9ff", high = "#0984e3") +
+# --- 2. Análise Estatística ---
+print("=== INDICADORES GERAIS DA POPULAÇÃO ===")
+cat("Total de indivíduos analisados:", nrow(dados_analise), "\n")
+cat("Média de passos da amostra:", round(mean(dados_analise$Daily.Steps), 0), "\n")
+cat("Média de sono da amostra:", round(mean(dados_analise$Sleep.Duration), 1), "horas.\n\n")
+
+print("=== FORÇA DA TENDÊNCIA COMPORTAMENTAL ===")
+correlacao <- cor(dados_analise$Daily.Steps, dados_analise$Sleep.Duration)
+cat("Índice de Correlação Linear (Pearson):", round(correlacao, 3), "\n")
+
+# --- 3. Visualização de Dados ---
+ggplot(data = dados_analise, aes(x = Daily.Steps, y = Sleep.Duration, color = Categoria_Estresse)) +
+  geom_jitter(size = 2.5, alpha = 0.7, width = 50, height = 0.05) +
+  geom_smooth(method = "lm", se = FALSE, color = "#2c3e50", size = 1.2) +
+  scale_color_manual(values = c("Baixo" = "#2ecc71", "Moderado" = "#f1c40f", "Alto" = "#e74c3c")) +
   labs(
-    title = "Relação entre Atividade Física e Qualidade do Sono",
-    subtitle = "Linha tracejada indica os dias em que a meta de passos foi atingida",
-    x = "Dia da Semana",
-    y = "Passos Dados",
-    fill = "Horas de Sono"
+    title = "Estudo de Tendência: Estilo de Vida Ativo vs. Sono",
+    subtitle = "Alinhamento orgânico entre alta atividade física e maior tempo de repouso",
+    x = "Passos Diários",
+    y = "Duração do Sono (Horas)",
+    color = "Nível de Estresse"
   ) +
   theme_minimal()
